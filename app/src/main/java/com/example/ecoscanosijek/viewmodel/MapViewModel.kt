@@ -1,11 +1,14 @@
 package com.example.ecoscanosijek.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.ecoscanosijek.model.Report
 import com.example.ecoscanosijek.repository.ReportRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 class MapViewModel(private val reportRepository: ReportRepository) : ViewModel() {
     private val _allReports = MutableStateFlow<List<Report>>(emptyList())
@@ -16,6 +19,15 @@ class MapViewModel(private val reportRepository: ReportRepository) : ViewModel()
     }
 
     private fun loadAllReports() {
-        _allReports.value = reportRepository.getAllReports()
+        viewModelScope.launch {
+            reportRepository.getAllReports().collectLatest {
+                _allReports.value = it
+            }
+        }
+    }
+    fun deleteReport(reportId: String) {
+        viewModelScope.launch {
+            reportRepository.deleteReport(reportId)
+        }
     }
 }

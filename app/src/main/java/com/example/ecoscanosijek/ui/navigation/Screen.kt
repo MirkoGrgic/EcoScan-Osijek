@@ -9,7 +9,11 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(val route: String, val title: String = "", val icon: ImageVector? = null) {
+
+    object Starter : Screen("starter")
     object Login : Screen("login")
+
+    object Register : Screen("register")
     object Home : Screen("home", "Home", Icons.Default.Home)
     object Map : Screen("map", "Map", Icons.Default.LocationOn)
     object Leaderboard : Screen("leaderboard", "Rank", Icons.Default.Star)

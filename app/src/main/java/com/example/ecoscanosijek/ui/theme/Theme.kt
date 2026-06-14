@@ -40,7 +40,7 @@ private val LightColorScheme = lightColorScheme(
 fun EcoScanOsijekTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = false, // Set to false to keep eco theme
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

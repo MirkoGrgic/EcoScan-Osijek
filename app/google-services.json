@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "316766208377",
+    "project_id": "ecoscan-osijek",
+    "storage_bucket": "ecoscan-osijek.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:316766208377:android:9e68aec7e8e64ba0bdafa8",
+        "android_client_info": {
+          "package_name": "com.example.ecoscanosijek"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDLxD_53xIg5xK9r1ZbLneJebQ0nRBbuQk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

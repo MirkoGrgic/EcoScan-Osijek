@@ -1,41 +1,128 @@
 package com.example.ecoscanosijek.viewmodel
 
 import androidx.lifecycle.ViewModel
-import com.example.ecoscanosijek.data.MockData
+import androidx.lifecycle.viewModelScope
 import com.example.ecoscanosijek.model.User
-import com.example.ecoscanosijek.model.UserRole
 import com.example.ecoscanosijek.repository.AuthRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
-class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
+
+class AuthViewModel(
+    private val authRepository: AuthRepository
+) : ViewModel() {
+
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
-    fun login(email: String) {
-        // TODO: Real login logic
-        val user = authRepository.login(email)
-        _currentUser.value = user
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private var userListenerJob: Job? = null
+
+    init {
+        checkCurrentUser()
     }
 
-    fun loginAsCitizen() {
-        _currentUser.value = MockData.citizenUser
+    private fun checkCurrentUser() {
+        viewModelScope.launch {
+            val user = authRepository.getCurrentUser()
+            _currentUser.value = user
+
+            if (user != null) {
+                startUserListener()
+            }
+        }
     }
 
-    fun loginAsMunicipalWorker() {
-        _currentUser.value = MockData.workerUser
+    private fun startUserListener() {
+        userListenerJob?.cancel()
+
+        userListenerJob = viewModelScope.launch {
+            authRepository.observeCurrentUser()
+                .collectLatest { user ->
+                    _currentUser.value = user
+                }
+        }
     }
 
-    fun logout() {
-        authRepository.logout()
-        _currentUser.value = null
+    fun login(email: String, password: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            try {
+                val user = authRepository.login(email, password)
+                _currentUser.value = user
+
+                if (user != null) {
+                    startUserListener()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun register(
+        email: String,
+        password: String,
+        username: String
+    ) {
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            try {
+                val user = authRepository.register(
+                    email = email,
+                    password = password,
+                    username = username
+                )
+
+                _currentUser.value = user
+
+                if (user != null) {
+                    startUserListener()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 
     fun continueAsGuest() {
-        // For simplicity, guest can be a special citizen user or just a null user with guest permissions
-        // Here we'll just login as a default citizen for demo purposes if needed, 
-        // but user asked for guest button.
-        _currentUser.value = MockData.citizenUser.copy(username = "Guest", email = "guest@example.com")
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            try {
+                userListenerJob?.cancel()
+
+                val user = authRepository.loginAnonymously()
+                _currentUser.value = user
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            try {
+                authRepository.logout()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _currentUser.value = null
+            }
+        }
     }
 }

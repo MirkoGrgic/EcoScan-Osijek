@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
@@ -17,9 +19,11 @@ import com.example.ecoscanosijek.viewmodel.*
 fun AppNavigation() {
     val navController = rememberNavController()
     
-    // Repositories (In a real app, these might be provided by DI)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    
+    // Repositories
     val authRepository = remember { AuthRepository() }
-    val reportRepository = remember { ReportRepository() }
+    val reportRepository = remember { ReportRepository(context) }
     val userRepository = remember { UserRepository() }
     
     // ViewModels
@@ -35,15 +39,33 @@ fun AppNavigation() {
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
 
+    LaunchedEffect(currentUser) {
+        if (currentUser != null && currentRoute == Screen.Starter.route) {
+            navController.navigate(Screen.Home.route) {
+                popUpTo(Screen.Starter.route) { inclusive = true }
+            }
+        }
+    }
+
     Scaffold(
         bottomBar = {
             if (currentRoute in bottomNavScreens.map { it.route }) {
-                NavigationBar {
+                NavigationBar(
+                    containerColor = Color(0xFFE8F5E9),
+                    tonalElevation = 8.dp
+                ){
                     bottomNavScreens.forEach { screen ->
                         NavigationBarItem(
                             icon = { screen.icon?.let { Icon(it, contentDescription = screen.title) } },
                             label = { Text(screen.title) },
                             selected = currentRoute == screen.route,
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Color(0xFF1B5E20),
+                                selectedTextColor = Color(0xFF1B5E20),
+                                indicatorColor = Color(0xFFC8E6C9),
+                                unselectedIconColor = Color(0xFF6B7280),
+                                unselectedTextColor = Color(0xFF6B7280)
+                            ),
                             onClick = {
                                 navController.navigate(screen.route) {
                                     popUpTo(navController.graph.startDestinationId) {
@@ -61,15 +83,57 @@ fun AppNavigation() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Login.route,
+            startDestination = Screen.Starter.route,
             modifier = Modifier.padding(innerPadding)
         ) {
+            composable(Screen.Starter.route) {
+                StarterScreen(
+                    onLoginClick = {
+                        navController.navigate(Screen.Login.route)
+                    },
+                    onRegisterClick = {
+                        navController.navigate(Screen.Register.route)
+                    },
+                    onGuestClick = {
+                        authViewModel.continueAsGuest()
+                    }
+                )
+            }
+
             composable(Screen.Login.route) {
                 LoginScreen(
                     viewModel = authViewModel,
                     onLoginSuccess = {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    },
+                    onRegisterClick = {
+                        navController.navigate(Screen.Register.route)
+                    },
+                    onBackClick = {
+                        if(!navController.popBackStack()){
+                            navController.navigate(Screen.Starter.route){
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    }
+
+                )
+            }
+            composable(Screen.Register.route) {
+                RegisterScreen(
+                    viewModel = authViewModel,
+                    onRegisterSuccess = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    },
+                    onBackToLogin = {
+                        if (!navController.popBackStack()) {
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(Screen.Register.route) { inclusive = true }
+                            }
                         }
                     }
                 )
@@ -85,7 +149,10 @@ fun AppNavigation() {
                 )
             }
             composable(Screen.Map.route) {
-                MapScreen(viewModel = mapViewModel)
+                MapScreen(
+                    viewModel = mapViewModel,
+                    authViewModel = authViewModel
+                )
             }
             composable(Screen.Leaderboard.route) {
                 LeaderboardScreen(viewModel = userViewModel)
@@ -94,7 +161,9 @@ fun AppNavigation() {
                 ProfileScreen(
                     viewModel = authViewModel,
                     onLogout = {
-                        navController.navigate(Screen.Login.route) {
+                        reportViewModel.clearReports()
+
+                        navController.navigate(Screen.Starter.route) {
                             popUpTo(0) { inclusive = true }
                         }
                     }
@@ -116,7 +185,10 @@ fun AppNavigation() {
                     reportId = reportId,
                     authViewModel = authViewModel,
                     reportViewModel = reportViewModel,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onOpenMap = {
+                        navController.navigate(Screen.Map.route)
+                    }
                 )
             }
         }
