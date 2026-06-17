@@ -47,6 +47,12 @@ fun AppNavigation() {
         }
     }
 
+    LaunchedEffect(currentUser) {
+        if (currentUser?.role == com.example.ecoscanosijek.model.UserRole.WORKER) {
+            mapViewModel.listenForNewReports(context)
+        }
+    }
+
     Scaffold(
         bottomBar = {
             if (currentRoute in bottomNavScreens.map { it.route }) {
